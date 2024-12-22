@@ -118,18 +118,22 @@ function App() {
               {attributes.map((attribute) => (
                 <tr key={attribute.name}>
                   <td>{attribute.name}</td>
-                  <td>{attribute.value}</td>
+                  <td data-testid={`attribute-value-${attribute.name}`}>
+                    {attribute.value}
+                  </td>
                   <td>{calculateModifier(attribute.value)}</td>
                   <td>
                     <button
                       aria-label={`Increase ${attribute.name}`}
                       onClick={() => updateAttribute(attribute.name, 1)}
+                      data-testid={`increase-${attribute.name}`}
                     >
                       +
                     </button>
                     <button
                       aria-label={`Decrease ${attribute.name}`}
                       onClick={() => updateAttribute(attribute.name, -1)}
+                      data-testid={`decrease-${attribute.name}`}
                     >
                       -
                     </button>
@@ -187,9 +191,11 @@ function App() {
                 <h3>{skill.name}</h3>
                 <div>
                   <p>
-                    Points: {skill.pointsSpent} (Max: {pointsAvailable}) -{" "}
-                    Modifier ({skill.attributeModifier}): {attributeModifier} -{" "}
-                    Total: {totalSkillValue}
+                    <span data-testid={`Points-${skill.name}`}>
+                      Points: {skill.pointsSpent} (Max:{" "}
+                    </span>
+                    {pointsAvailable}) - Modifier ({skill.attributeModifier}):{" "}
+                    {attributeModifier} - Total: {totalSkillValue}
                   </p>
                   <button
                     aria-label={`Increase points for ${skill.name}`}

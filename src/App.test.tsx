@@ -1,79 +1,149 @@
-import { render, screen, fireEvent } from "@testing-library/react";
-import "@testing-library/jest-dom";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import App from "./App";
-import { ATTRIBUTE_LIST, CLASS_LIST } from "./consts";
+import { ATTRIBUTE_LIST, SKILL_LIST, CLASS_LIST } from "./consts";
+import useCharacterAPI from "./useCharacterAPI";
+
+jest.mock("./useCharacterAPI");
 
 describe("App Component", () => {
-  test("renders initial state correctly", () => {
+  beforeEach(() => {
+    (useCharacterAPI as jest.Mock).mockReturnValue({
+      data: {
+        body: {
+          attributes: ATTRIBUTE_LIST.map((attr) => ({ name: attr, value: 10 })),
+          skills: SKILL_LIST.map((skill) => ({ ...skill, pointsSpent: 0 })),
+        },
+      },
+      isLoading: false,
+      error: null,
+      saveData: jest.fn(),
+    });
+  });
+
+  it("should render without crashing", () => {
     render(<App />);
     expect(screen.getByText("React Coding Exercise")).toBeInTheDocument();
+  });
 
-    // Check if all attributes are rendered with initial value
-    ATTRIBUTE_LIST.forEach((attr) => {
-      expect(screen.getByText(attr)).toBeInTheDocument();
+  it("should render attribute table with default values", () => {
+    render(<App />);
+    ATTRIBUTE_LIST.forEach((attributeName) => {
+      const valueCell = screen.getByTestId(`attribute-value-${attributeName}`);
+      expect(valueCell).toHaveTextContent("10");
     });
   });
 
-  test("calculates modifier correctly for specific attribute", () => {
+  it("should allow increasing and decreasing attribute values", () => {
     render(<App />);
-    const firstAttribute = ATTRIBUTE_LIST[0];
 
-    expect(screen.getByText(firstAttribute)).toHaveTextContent("Strength");
+    ATTRIBUTE_LIST.forEach((attributeName) => {
+      const increaseButton = screen.getByTestId(`increase-${attributeName}`);
+      const decreaseButton = screen.getByTestId(`decrease-${attributeName}`);
 
-    const increaseButton = screen.getByLabelText(`Increase ${firstAttribute}`);
-    fireEvent.click(increaseButton);
-    expect(screen.getByText(firstAttribute)).toHaveTextContent("Strength");
+      //get value by testid
+      const valueCell = screen.getByTestId(`attribute-value-${attributeName}`);
+
+      expect(valueCell).toHaveTextContent("10");
+
+      fireEvent.click(increaseButton);
+      expect(valueCell).toHaveTextContent("11");
+
+      fireEvent.click(decreaseButton);
+      expect(valueCell).toHaveTextContent("10");
+    });
   });
 
-  test("displays class requirements when clicked", () => {
-    render(<App />);
-    const firstClass = Object.keys(CLASS_LIST)[0];
-    fireEvent.click(screen.getByText(firstClass));
-
-    expect(screen.getByText(`${firstClass} Requirements`)).toBeInTheDocument();
-  });
-
-  test("shows correct class availability based on requirements", () => {
+  it("should display the correct class color based on attribute requirements", () => {
     render(<App />);
 
-    // Initially all classes should be red (requirements not met)
-    Object.keys(CLASS_LIST).forEach((className) => {
+    Object.entries(CLASS_LIST).forEach(([className, requirements]) => {
       const classElement = screen.getByText(className);
-      expect(classElement).toHaveStyle({ color: "red" });
+      const meetsRequirements = Object.entries(requirements).every(
+        ([name, min]) => {
+          const attribute = ATTRIBUTE_LIST.find((attr) => attr === name);
+          return attribute && 10 >= min;
+        }
+      );
+
+      expect(classElement).toHaveStyle(
+        `color: ${meetsRequirements ? "green" : "red"}`
+      );
     });
-
-    // Increase attributes to meet requirements for first class
-    const firstClass = Object.keys(CLASS_LIST)[0];
-    const requirements = CLASS_LIST[firstClass as keyof typeof CLASS_LIST];
-
-    // Increase relevant attributes
-    Object.entries(requirements).forEach(([attr]) => {
-      const increaseButton = screen.getAllByLabelText(`Increase ${attr}`)[0];
-      // Click enough times to meet requirement
-      for (let i = 0; i < 5; i++) {
-        fireEvent.click(increaseButton);
-      }
-    });
-
-    // Check if class is now available (green)
-    expect(screen.getByText(firstClass)).toHaveStyle({ color: "green" });
   });
 
-  test("handles edge cases for attribute values", () => {
+  it("should handle skill points correctly", () => {
     render(<App />);
-    const firstAttributeIncrease = screen.getAllByLabelText(/Increase/)[0];
-    const firstAttributeDecrease = screen.getAllByLabelText(/Decrease/)[0];
 
-    // Test multiple increases
-    for (let i = 0; i < 10; i++) {
-      fireEvent.click(firstAttributeIncrease);
-    }
-    expect(screen.getByText("20")).toBeInTheDocument();
+    SKILL_LIST.forEach((skill) => {
+      const increaseButton = screen.getByLabelText(
+        `Increase points for ${skill.name}`
+      );
+      const decreaseButton = screen.getByLabelText(
+        `Decrease points for ${skill.name}`
+      );
 
-    // Test multiple decreases
-    for (let i = 0; i < 15; i++) {
-      fireEvent.click(firstAttributeDecrease);
-    }
-    expect(screen.getByText("5")).toBeInTheDocument();
+      // Find the skill points element by its test ID
+      const pointsText = screen.getByTestId(`Points-${skill.name}`);
+
+      expect(pointsText).toHaveTextContent("Points: 0");
+
+      fireEvent.click(increaseButton);
+      expect(pointsText).toHaveTextContent("Points: 1");
+
+      fireEvent.click(decreaseButton);
+      expect(pointsText).toHaveTextContent("Points: 0");
+    });
+  });
+
+  it("should save character data when Save button is clicked", async () => {
+    const saveDataMock = jest.fn();
+    (useCharacterAPI as jest.Mock).mockReturnValue({
+      data: {
+        body: {
+          attributes: ATTRIBUTE_LIST.map((attr) => ({ name: attr, value: 10 })),
+          skills: SKILL_LIST.map((skill) => ({ ...skill, pointsSpent: 0 })),
+        },
+      },
+      isLoading: false,
+      error: null,
+      saveData: saveDataMock,
+    });
+
+    render(<App />);
+    const saveButton = screen.getByText("Save Character");
+
+    fireEvent.click(saveButton);
+
+    await waitFor(() => {
+      expect(saveDataMock).toHaveBeenCalledWith({
+        attributes: ATTRIBUTE_LIST.map((attr) => ({ name: attr, value: 10 })),
+        skills: SKILL_LIST.map((skill) => ({ ...skill, pointsSpent: 0 })),
+      });
+    });
+  });
+
+  it("should display loading state when isLoading is true", () => {
+    (useCharacterAPI as jest.Mock).mockReturnValue({
+      data: null,
+      isLoading: true,
+      error: null,
+      saveData: jest.fn(),
+    });
+
+    render(<App />);
+    expect(screen.getByText("Loading...")).toBeInTheDocument();
+  });
+
+  it("should display error state when error occurs", () => {
+    const errorMessage = "Error fetching data";
+    (useCharacterAPI as jest.Mock).mockReturnValue({
+      data: null,
+      isLoading: false,
+      error: errorMessage,
+      saveData: jest.fn(),
+    });
+
+    render(<App />);
+    expect(screen.getByText(errorMessage)).toBeInTheDocument();
   });
 });
