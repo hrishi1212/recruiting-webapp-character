@@ -1,6 +1,4 @@
-# recruiting-webapp-character
-
-React Character Creation App
+# React Character Creation App
 
 This is a simple React application where users can create and manage a character for a role-playing game (RPG). It allows users to modify attributes, allocate skill points, select a class, and save the character's data.
 
