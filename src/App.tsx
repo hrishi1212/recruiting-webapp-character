@@ -6,12 +6,14 @@ function App() {
   const [attributes, setAttributes] = useState(
     ATTRIBUTE_LIST.map((attr) => ({ name: attr, value: 10 })) // Default value set to 10
   );
+  const [selectedClass, setSelectedClass] = useState<string | null>(null);
 
   // Helper function to calculate modifier
   const calculateModifier = useCallback((value: number): number => {
     return Math.floor((value - 10) / 2);
   }, []);
 
+  // Helper function to update attribute value
   const updateAttribute = useCallback((name: string, delta: number): void => {
     setAttributes((prev) =>
       prev.map((attr) =>
@@ -20,6 +22,7 @@ function App() {
     );
   }, []);
 
+  // Helper function to check if class requirements are met
   const meetsClassRequirements = useCallback(
     (requirements: Record<string, number>): boolean => {
       return Object.entries(requirements).every(([name, min]) => {
@@ -29,6 +32,17 @@ function App() {
     },
     [attributes]
   );
+
+  //// Helper function to render class requirements
+  const renderAttributes = (
+    classAttributes: Record<string, string | number>
+  ) => {
+    return Object.entries(classAttributes ?? {}).map(([attribute, min]) => (
+      <li key={attribute}>
+        {attribute}: {min}
+      </li>
+    ));
+  };
 
   return (
     <div className="App">
@@ -76,12 +90,24 @@ function App() {
               key={className}
               style={{
                 color: meetsClassRequirements(requirements) ? "green" : "red",
+                cursor: "pointer",
               }}
+              onClick={() => setSelectedClass(className)}
             >
               {className}
             </li>
           ))}
         </ul>
+        {selectedClass && (
+          <div className="class-details">
+            <h3>{selectedClass} Requirements</h3>
+            <ul>
+              {renderAttributes(
+                CLASS_LIST[selectedClass as keyof typeof CLASS_LIST]
+              )}
+            </ul>
+          </div>
+        )}
       </section>
     </div>
   );
