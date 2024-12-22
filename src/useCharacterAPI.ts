@@ -1,4 +1,3 @@
-// useCharacterAPI.ts
 import { useState, useEffect } from "react";
 import { fetchCharacterData, saveCharacterData } from "./api";
 

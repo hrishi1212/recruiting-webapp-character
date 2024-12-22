@@ -1,5 +1,4 @@
-// api.ts
-const API_URL = `https://recruiting.verylongdomaintotestwith.ca/api/{hrishi1212}/character`;
+import { API_URL } from "./consts";
 
 export const fetchCharacterData = async () => {
   try {
